@@ -4,8 +4,11 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mzbloc.springboot.redis.annotation.RedisMessageListener;
+import com.mzbloc.springboot.redis.properties.RedisProperties;
 import com.mzbloc.springboot.redis.util.ClassUtil;
 import com.mzbloc.springboot.redis.util.ReflectionUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -34,7 +37,12 @@ import java.util.Set;
  */
 @Configuration
 @EnableCaching
+@EnableConfigurationProperties(RedisProperties.class)
 public class RedisCacheConfig extends CachingConfigurerSupport {
+
+    @Autowired
+    RedisProperties redisProperties;
+
     /**
      * 缓存管理器.
      * @param redisTemplate
@@ -111,7 +119,7 @@ public class RedisCacheConfig extends CachingConfigurerSupport {
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory){
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        Set<Class<? extends MessageListener>> classSet = ClassUtil.getClassSet("com.mzbloc.demo.sample106.consumer",RedisMessageListener.class);
+        Set<Class<? extends MessageListener>> classSet = ClassUtil.getClassSet(redisProperties.getScanPackageName(),RedisMessageListener.class);
         if(!CollectionUtils.isEmpty(classSet)) {
             for (Class<? extends MessageListener> classs : classSet) {
                 // 获取 SOAP 类的实例
