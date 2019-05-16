@@ -1,1 +1,1 @@
-provides: spring-boot-starter-cxf-soap
+provides: mzbloc-springboot-redis
