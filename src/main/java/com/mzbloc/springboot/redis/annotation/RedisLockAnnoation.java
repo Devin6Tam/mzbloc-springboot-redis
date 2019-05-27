@@ -1,14 +1,12 @@
 package com.mzbloc.springboot.redis.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * redis 分布式锁（注解类）
  * Created by tanxw on 2019/5/15.
  */
+@Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface RedisLockAnnoation {

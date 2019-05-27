@@ -17,6 +17,30 @@
       "type": "java.lang.String",
       "description": "Package to scan Listener",
       "sourceType": "com.mzbloc.springboot.redis.properties.RedisProperties"
+    },{
+      "name": "mzbloc.redis.sessionKey",
+      "type": "java.lang.String",
+      "description": "session key",
+      "defaultValue": "UserSession",
+      "sourceType": "com.mzbloc.springboot.redis.properties.RedisProperties"
+    },{
+      "name": "mzbloc.redis.cookieDomain",
+      "type": "java.lang.String",
+      "description": "cookie effect domain",
+      "defaultValue": "",
+      "sourceType": "com.mzbloc.springboot.redis.properties.RedisProperties"
+    },{
+      "name": "mzbloc.redis.cookiePath",
+      "type": "java.lang.String",
+      "description": "cookie effect path",
+      "defaultValue": "/",
+      "sourceType": "com.mzbloc.springboot.redis.properties.RedisProperties"
+    },{
+      "name": "mzbloc.redis.sessionTimeout",
+      "type": "java.lang.Integer",
+      "description": "session valid time,in minutes",
+      "defaultValue": 40,
+      "sourceType": "com.mzbloc.springboot.redis.properties.RedisProperties"
     }
   ],
   "hints": []

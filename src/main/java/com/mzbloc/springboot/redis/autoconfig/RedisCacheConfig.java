@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mzbloc.springboot.redis.annotation.RedisMessageListener;
 import com.mzbloc.springboot.redis.properties.RedisProperties;
+import com.mzbloc.springboot.redis.session.HttpSessionManager;
+import com.mzbloc.springboot.redis.session.RedisSessionManager;
 import com.mzbloc.springboot.redis.util.ClassUtil;
 import com.mzbloc.springboot.redis.util.ReflectionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,9 @@ import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -36,8 +40,10 @@ import java.util.Set;
  * Created by tanxw on 2019/2/22.
  */
 @Configuration
-@EnableCaching
 @EnableConfigurationProperties(RedisProperties.class)
+@EnableCaching
+@ComponentScan({"com.mzbloc"})
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class RedisCacheConfig extends CachingConfigurerSupport {
 
     @Autowired
@@ -50,10 +56,28 @@ public class RedisCacheConfig extends CachingConfigurerSupport {
      */
 
     @Bean
-    public CacheManager cacheManager(RedisTemplate<?,?> redisTemplate) {
+    public CacheManager cacheManager(RedisTemplate<String,Object> redisTemplate) {
         CacheManager cacheManager = new RedisCacheManager(redisTemplate);
         return cacheManager;
     }
+
+
+    /**
+     * 会话管理器
+     * @param redisTemplate
+     * @return
+     */
+    @Bean
+    public HttpSessionManager sessionManager(RedisTemplate<String,Object> redisTemplate){
+        RedisSessionManager sessionManager =  new RedisSessionManager();
+        sessionManager.setSessionKey(redisProperties.getSessionKey());
+        sessionManager.setCookieDomain(redisProperties.getCookieDomain());
+        sessionManager.setCookiePath(redisProperties.getCookiePath());
+        sessionManager.setSessionTimeout(redisProperties.getSessionTimeout());
+        sessionManager.setRedisTemplate(redisTemplate);
+        return sessionManager;
+    }
+
 
     /**
      * RedisTemplate缓存操作类,类似于jdbcTemplate的一个类;
@@ -62,8 +86,8 @@ public class RedisCacheConfig extends CachingConfigurerSupport {
      * @return
      */
     @Bean
-    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<Object, Object> redisTemplate = new RedisTemplate<>();
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(factory);
         //使用Jackson2JsonRedisSerializer来序列化和反序列化redis的value值（默认使用JDK的序列化方式）
         Jackson2JsonRedisSerializer serializer = new Jackson2JsonRedisSerializer(Object.class);
@@ -98,8 +122,7 @@ public class RedisCacheConfig extends CachingConfigurerSupport {
         return new KeyGenerator(){
             @Override
             public Object generate(Object o, Method method, Object... objects) {
-                // This willgenerate a unique key of the class name, the method name
-                //and allmethod parameters appended.
+                // This will generate a unique key of the class name, the method name and allmethod parameters appended.
                 StringBuilder sb = new StringBuilder();
                 sb.append(o.getClass().getName());
                 sb.append("."+method.getName());

@@ -63,7 +63,11 @@ public class RedisDistributionLock implements Lock{
             log.info("tryLock:[{}]", this.lockKey);
             this.lockTimestamp = getCurrentTimeFromRedis();
             long lockExpireTime = this.lockTimestamp + (long)this.expire;
-            this.value = this.value + ":" + lockExpireTime;
+            if(StringUtils.isBlank(this.value) || this.value.split(":").length>1){
+                this.value = RandomStringUtils.randomNumeric(4)+ ":" + lockExpireTime;
+            }else{
+                this.value = this.value + ":" + lockExpireTime;
+            }
             boolean success = this.redisTemplate.opsForValue().setIfAbsent(this.lockKey, this.value).booleanValue();
             if(success) {
                 this.redisTemplate.expire(this.lockKey, (long)this.expire, TimeUnit.MILLISECONDS);
@@ -71,7 +75,6 @@ public class RedisDistributionLock implements Lock{
                 if(log.isDebugEnabled()) {
                     log.info("locked:{}", this.lockKey);
                 }
-
                 this.isLock = true;
             } else {
                 Object valueFromRedis = this.getKeyWithRetry(this.lockKey, retryTimes);
@@ -81,8 +84,8 @@ public class RedisDistributionLock implements Lock{
                     long oldExpireTime = Long.parseLong((String)valueFromRedis);
                     log.debug("redis lock debug, key already seted. key:[{}], oldExpireTime:[{}]",this.lockKey,oldExpireTime);
                     //锁过期时间小于当前时间,锁已经超时,重新取锁
-                    if (oldExpireTime <= lockTimestamp) {
-                        log.debug("redis lock debug, lock time expired. key:[{}], oldExpireTime:[{}], now:[{}]", this.lockKey, oldExpireTime, lockTimestamp);
+                    if (oldExpireTime <= this.lockTimestamp) {
+                        log.debug("redis lock debug, lock time expired. key:[{}], oldExpireTime:[{}], now:[{}]", this.lockKey, oldExpireTime, this.lockTimestamp);
                         String valueFromRedis2 = this.redisTemplate.opsForValue().getAndSet(this.lockKey, String.valueOf(lockExpireTime));
                         long currentExpireTime = Long.parseLong(valueFromRedis2);
                         //判断currentExpireTime与oldExpireTime是否相等
@@ -105,7 +108,7 @@ public class RedisDistributionLock implements Lock{
 
             return success;
         } catch (Exception var4) {
-            log.error("获取锁异常：{}", this.lockKey);
+            log.error("获取锁{},出现异常：{}", this.lockKey,var4.getMessage());
             return false;
         }
     }
@@ -171,9 +174,10 @@ public class RedisDistributionLock implements Lock{
                 }
             }
         } catch (InterruptedException var18) {
-            log.error("Thread.sleep 异常", var18);
-            var18.printStackTrace();
-            throw new RuntimeException(var18);
+            log.error("Thread.sleep 异常:{}", var18);
+//            throw new RuntimeException(var18);
+        }finally {
+            return false;
         }
     }
 
@@ -199,7 +203,6 @@ public class RedisDistributionLock implements Lock{
                 log.info("unlock[{}], lockedTimes:{}ms", this.lockKey, Long.valueOf(getCurrentTimeFromRedis() - this.lockedTimestamp));
             }
         }
-
     }
 
     /**

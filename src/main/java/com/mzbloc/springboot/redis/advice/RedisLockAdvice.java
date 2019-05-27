@@ -5,8 +5,6 @@ import com.mzbloc.springboot.redis.exception.CommonExceptionEnum;
 import com.mzbloc.springboot.redis.exception.ExceptionUtil;
 import com.mzbloc.springboot.redis.util.RedisDistributionLock;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -30,7 +28,7 @@ public class RedisLockAdvice {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    @Around("@annotation(RedisLockAnnoation)")
+    @Around("@annotation(com.mzbloc.springboot.redis.annotation.RedisLockAnnoation)")
     public Object processAround(ProceedingJoinPoint pjp) throws Throwable {
         //获取方法上的注解对象
         String methodName = pjp.getSignature().getName();
@@ -41,16 +39,11 @@ public class RedisLockAdvice {
 
         //拼装分布式锁的key
         String[] keys = rlAnnoation.keys();
-        Object[] args = pjp.getArgs();
-        Object arg = args[0];
         StringBuilder temp = new StringBuilder();
-        temp.append(rlAnnoation.keyPrefix());
-        for (String key : keys) {
-            String getMethod = "get" + StringUtils.capitalize(key);
-            temp.append(MethodUtils.invokeExactMethod(arg, getMethod)).append("_");
+        for (int $i = 0;$i < keys.length;$i++) {
+            temp.append("_"+keys[$i]);
         }
-        String redisKey = StringUtils.removeEnd(temp.toString(), "_");
-
+        String redisKey = rlAnnoation.keyPrefix()+methodName+temp.toString();
         RedisDistributionLock redisDistributionLock = new RedisDistributionLock(redisKey,stringRedisTemplate,rlAnnoation.expireTime());
         //执行分布式锁的逻辑
         if (rlAnnoation.isSpin()) {
